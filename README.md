@@ -44,11 +44,10 @@ Before we get started everything below must be taken into consideration, you mus
 
 📍 _Ideally you will run the cluster on bare metal machines. If you intend to run your cluster on Proxmox VE, my thoughts and recommendations about that are documented [here](https://onedr0p.github.io/home-ops/notes/proxmox-considerations.html)._
 
-| Role    | Cores    | Memory        | System Disk               |
-|---------|----------|---------------|---------------------------|
-| Control | 4 _(6*)_ | 8GB _(24GB*)_ | 100GB _(500GB*)_ SSD/NVMe |
-| Worker  | 4 _(6*)_ | 8GB _(24GB*)_ | 100GB _(500GB*)_ SSD/NVMe |
-| _\* recommended_ |
+| Role                | Hardware    | RAM         | System Disk |
+|---------------------|-------------|-------------|-------------|
+| Router              | Mikrotik RB5009UG+S+IN   | 1GB | 1GB    |
+| Control(and Worker) | F9 i7-1260P | 8GB -> 64GB | 2Tb Nvme    |
 
 ### Debian for AMD64
 
