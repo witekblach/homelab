@@ -1,6 +1,4 @@
-# Deploy a Kubernetes cluster backed by Flux
-
-Welcome to my highly opinionated template for deploying a single Kubernetes ([k3s](https://k3s.io)) cluster with [Ansible](https://www.ansible.com) and using [Flux](https://toolkit.fluxcd.io) to manage its state.
+# Kubernetes cluster backed by Flux
 
 ## 👋 Introduction
 
@@ -34,8 +32,6 @@ Before we get started everything below must be taken into consideration, you mus
 - [ ] be willing to commit encrypted secrets to a public GitHub repository.
 - [ ] have a DNS server that supports split DNS (e.g. Pi-Hole) deployed somewhere outside your cluster **ON** your home network.
 
-## 💻 Machine Preparation
-
 ### System requirements
 
 📍 _k3s default behaviour is that all nodes are able to run workloads, including contol nodes. Worker nodes are therefore optional._
@@ -44,85 +40,13 @@ Before we get started everything below must be taken into consideration, you mus
 
 📍 _Ideally you will run the cluster on bare metal machines. If you intend to run your cluster on Proxmox VE, my thoughts and recommendations about that are documented [here](https://onedr0p.github.io/home-ops/notes/proxmox-considerations.html)._
 
-| Role                | Hardware    | RAM         | System Disk |
-|---------------------|-------------|-------------|-------------|
-| Router              | Mikrotik RB5009UG+S+IN   | 1GB | 1GB    |
-| Control(and Worker) | F9 i7-1260P | 8GB -> 64GB | 2Tb Nvme    |
+| Role                | Hardware               | RAM         | System Disk |
+|---------------------|------------------------|-------------|-------------|
+| Router              | Mikrotik RB5009UG+S+IN | 1GB         | 1GB         |
+| Virtualization host | F9 i7-1260P            | 8GB -> 64GB | 2Tb Nvme    |
 
-### Debian for AMD64
+### Proxmox
 
-1. Download the latest stable release of Debian from [here](https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd), then follow [this guide](https://www.linuxtechi.com/how-to-install-debian-12-step-by-step) to get it installed. Deviations from the guide:
-
-    ```txt
-    Choose "Guided - use entire disk"
-    Choose "All files in one partition"
-    Delete Swap partition
-    Uncheck all Debian desktop environment options
-    ```
-
-2. [Post install] Remove CD/DVD as apt source
-
-    ```sh
-    su -
-    sed -i '/deb cdrom/d' /etc/apt/sources.list
-    apt update
-    exit
-    ```
-
-3. [Post install] Enable sudo for your non-root user
-
-    ```sh
-    su -
-    apt update
-    apt install -y sudo
-    usermod -aG sudo ${username}
-    echo "${username} ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/${username}
-    exit
-    newgrp sudo
-    sudo apt update
-    ```
-
-4. [Post install] Add SSH keys (or use `ssh-copy-id` on the client that is connecting)
-
-    📍 _First make sure your ssh keys are up-to-date and added to your github account as [instructed](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)._
-
-    ```sh
-    mkdir -m 700 ~/.ssh
-    sudo apt install -y curl
-    curl https://github.com/${github_username}.keys > ~/.ssh/authorized_keys
-    chmod 600 ~/.ssh/authorized_keys
-    ```
-
-### Debian for RasPi4
-
-📍 _If you choose to use a Raspberry Pi 4 for the cluster, it is recommended to have an 8GB model. Most important is to **boot from an external SSD/NVMe** rather than an SD card. This is supported [natively](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html), however if you have an early model you may need to [update the bootloader](https://www.tomshardware.com/how-to/boot-raspberry-pi-4-usb) first._
-
-📍 _Be sure to check the [power requirements](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#power-supply) if using a PoE Hat and a SSD/NVMe dongle._
-
-1. Download the latest stable release of Debian from [here](https://raspi.debian.net/tested-images). _**Do not** use Raspbian or DietPi or any other flavor Linux OS._
-
-2. Flash the image onto an SSD/NVMe drive.
-
-3. Re-mount the drive to your workstation and then do the following (per the [official documentation](https://raspi.debian.net/defaults-and-settings)):
-
-    ```txt
-    Open 'sysconf.txt' in a text editor and save it upon updating the information below
-      - Change 'root_authorized_key' to your desired public SSH key
-      - Change 'root_pw' to your desired root password
-      - Change 'hostname' to your desired hostname
-    ```
-
-4. Connect SSD/NVMe drive to the Raspberry Pi 4 and power it on.
-
-5. [Post install] SSH into the device with the `root` user and then create a normal user account with `adduser ${username}`
-
-6. [Post install] Follow steps 3 and 4 from [Debian for AMD64](#debian-for-amd64).
-
-7. [Post install] Install `python3` which is needed by Ansible.
-
-    ```sh
-    sudo apt install -y python3
-    ```
 
 ## 🚀 Getting Started
 
@@ -130,62 +54,8 @@ Once you have installed Debian on your nodes, there are six stages to getting a 
 
 📍 _For all stages below the commands **MUST** be ran on your personal workstation within your repository directory_
 
-### 🎉 Stage 1: Create a Git repository
-
-1. Create a new **public** repository by clicking the big green "Use this template" button at the top of this page.
-
-2. Clone **your new repo** to you local workstation and `cd` into it.
-
-### 🌱 Stage 2: Setup your local workstation environment
-
-📍 _Let's get the required workstation tools installed and configured._
-
-1. Install the most recent version of [task](https://taskfile.dev/)
-
-    📍 _See the task [installation docs](https://taskfile.dev/installation/) for other platforms_
-
-    ```sh
-    # Brew
-    brew install go-task
-    ```
-
-2. Install the most recent version of [direnv](https://direnv.net/)
-
-    📍 _See the direnv [installation docs](https://direnv.net/docs/installation.html) for other platforms_
-
-    📍 _After installing `direnv` be sure to [hook it into your shell](https://direnv.net/docs/hook.html) and after that is done run `direnv allow` while in your repos directory._
-
-    ```sh
-    # Brew
-    brew install direnv
-    ```
-
-3. Setup a Python virual env and install Ansible by running the following task command.
-
-    📍 _This commands requires Python 3.8+ to be installed_
-
-    ```sh
-    # Platform agnostic
-    task deps
-    ```
-
-4. Install the required tools: [age](https://github.com/FiloSottile/age), [flux](https://toolkit.fluxcd.io/), [cloudflared](https://github.com/cloudflare/cloudflared), [kubectl](https://kubernetes.io/docs/tasks/tools/), [sops](https://github.com/getsops/sops)
-
-   ```sh
-   # Brew
-   task brew:deps
-   ```
 
 ### 🔧 Stage 3: Do bootstrap configuration
-
-📍 _Both `bootstrap/vars/config.yaml` and `bootstrap/vars/addons.yaml` files contain necessary information that is needed by bootstrap process._
-
-1. Generate the `bootstrap/vars/config.yaml` and `bootstrap/vars/addons.yaml` configuration files.
-
-    ```sh
-    task init
-    ```
-
 2. Setup Age private / public key
 
     📍 _Using [SOPS](https://github.com/getsops/sops) with [Age](https://github.com/FiloSottile/age) allows us to encrypt secrets and use them in Ansible and Flux._
