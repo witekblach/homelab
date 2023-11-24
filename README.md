@@ -1,4 +1,22 @@
-# Kubernetes cluster backed by Flux
+# My Homelab Cluster 🏍
+
+## 📖 Overview
+
+What pushed me to invest my time and money into creating a homelab
+- Smart Home
+  - I already had Home Assistant running on a Raspberry Pi 4
+  - but I was aware that a single hardware failure would stop my lights from working
+- Personal projects
+  -
+- Bootstrapping new projects
+-
+
+### Hardware
+
+| Role                | Hardware               | RAM  | System Disk |
+|---------------------|------------------------|------|-------------|
+| Router              | Mikrotik RB5009UG+S+IN | 1GB  | 1GB         |
+| Virtualization host | Eglobal F9 i7-1260P    | 64GB | 2Tb Nvme    |
 
 ## 👋 Introduction
 
@@ -32,23 +50,9 @@ Before we get started everything below must be taken into consideration, you mus
 - [ ] be willing to commit encrypted secrets to a public GitHub repository.
 - [ ] have a DNS server that supports split DNS (e.g. Pi-Hole) deployed somewhere outside your cluster **ON** your home network.
 
-### System requirements
-
-📍 _k3s default behaviour is that all nodes are able to run workloads, including contol nodes. Worker nodes are therefore optional._
-
-📍 _If you have 3 or more nodes it is strongly recommended to make 3 of them control nodes for a highly available control plane._
-
-📍 _Ideally you will run the cluster on bare metal machines. If you intend to run your cluster on Proxmox VE, my thoughts and recommendations about that are documented [here](https://onedr0p.github.io/home-ops/notes/proxmox-considerations.html)._
-
-| Role                | Hardware               | RAM  | System Disk |
-|---------------------|------------------------|------|-------------|
-| Router              | Mikrotik RB5009UG+S+IN | 1GB  | 1GB         |
-| Virtualization host | F9 i7-1260P            | 64GB | 2Tb Nvme    |
 
 ### 🚀 Proxmox
 
-
-??5. The `kubeconfig` for interacting with your cluster should have been created in the root of your repository.
 
 ## 📣 Post installation
 
